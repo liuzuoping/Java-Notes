@@ -86,7 +86,7 @@ AMQP 中有四种 exchange
 - 解压缩至如下路径
 
   ```shell
-  /usr/local/kafka/Copy to clipboardErrorCopied
+  /usr/local/kafka/
   ```
 
 - 修改配置文件：/usr/local/kafka/kafka2.11-2.4/config/server.properties
@@ -99,7 +99,7 @@ AMQP 中有四种 exchange
   #kafka的消息存储文件
   log.dir=/usr/local/data/kafka-logs
   #kafka连接zookeeper的地址
-  zookeeper.connect= 192.168.65.60:2181Copy to clipboardErrorCopied
+  zookeeper.connect= 192.168.65.60:2181
   ```
 
   ## [2.启动kafka服务器](http://notes.xiyankt.com/#/kafka/kafka?id=_2启动kafka服务器)
@@ -107,7 +107,7 @@ AMQP 中有四种 exchange
 进入到bin目录下。使用命令来启动
 
 ```shell
-./kafka-server-start.sh -daemon../config/server.propertiesCopy to clipboardErrorCopied
+./kafka-server-start.sh -daemon../config/server.properties
 ```
 
 验证是否启动成功：
@@ -115,7 +115,7 @@ AMQP 中有四种 exchange
 进入到zk中的节点看id是 0 的broker有没有存在（上线）
 
 ```shell
-ls /brokers/ids/Copy to clipboardErrorCopied
+ls /brokers/ids/
 ```
 
 **server.properties核心配置详解：**
@@ -141,13 +141,13 @@ ls /brokers/ids/Copy to clipboardErrorCopied
 执行以下命令创建名为“test”的topic，这个topic只有一个partition，并且备份因子也设置为1
 
 ```shell
-./kafka-topics.sh --create --zookeeper 172.16.253.35:2181 --replication-factor 1 --partitions 1 --topic testCopy to clipboardErrorCopied
+./kafka-topics.sh --create --zookeeper 172.16.253.35:2181 --replication-factor 1 --partitions 1 --topic test
 ```
 
 查看当前kafka内有哪些topic
 
 ```shell
-./kafka-topics.sh --list --zookeeper 172.16.253.35:2181Copy to clipboardErrorCopied
+./kafka-topics.sh --list --zookeeper 172.16.253.35:2181
 ```
 
 ## [4.发送消息](http://notes.xiyankt.com/#/kafka/kafka?id=_4发送消息)
@@ -155,7 +155,7 @@ ls /brokers/ids/Copy to clipboardErrorCopied
 > kafka自带了一个producer命令客户端，可以从本地文件中读取内容，或者我们也可以以命令行中直接输入内容，并将这些内容以消息的形式发送到kafka集群中。在默认情况下，每一个行会被当做成一个独立的消息。使用kafka的发送消息的客户端，指定发送到的kafka服务器地址和topic
 
 ```shell
-./kafka-console-producer.sh --broker-list 172.16.253.38:9092 --topic testCopy to clipboardErrorCopied
+./kafka-console-producer.sh --broker-list 172.16.253.38:9092 --topic test
 ```
 
 ## [5.消费消息](http://notes.xiyankt.com/#/kafka/kafka?id=_5消费消息)
@@ -165,13 +165,13 @@ ls /brokers/ids/Copy to clipboardErrorCopied
 方式一：从最后一条消息的偏移量+1开始消费
 
 ```shell
-./kafka-console-consumer.sh --bootstrap-server 172.16.253.38:9092 --topic testCopy to clipboardErrorCopied
+./kafka-console-consumer.sh --bootstrap-server 172.16.253.38:9092 --topic test
 ```
 
 方式二：从头开始消费
 
 ```shell
-./kafka-console-consumer.sh --bootstrap-server 172.16.253.38:9092 --from-beginning --topic testCopy to clipboardErrorCopied
+./kafka-console-consumer.sh --bootstrap-server 172.16.253.38:9092 --from-beginning --topic test
 ```
 
 ### [几个注意点：](http://notes.xiyankt.com/#/kafka/kafka?id=几个注意点：)
@@ -192,7 +192,7 @@ ls /brokers/ids/Copy to clipboardErrorCopied
 > 单播消息：一个消费组里 只会有一个消费者能消费到某一个topic中的消息。于是可以创建多个消费者，这些消费者在同一个消费组中。
 
 ```shell
-./kafka-console-consumer.sh --bootstrap-server 10.31.167.10:9092 --consumer-property group.id=testGroup --topic testCopy to clipboardErrorCopied
+./kafka-console-consumer.sh --bootstrap-server 10.31.167.10:9092 --consumer-property group.id=testGroup --topic test
 ```
 
 ## [3.多播消息的实现](http://notes.xiyankt.com/#/kafka/kafka?id=_3多播消息的实现)
@@ -204,7 +204,7 @@ kafka实现多播，只需要让不同的消费者处于不同的消费组即可
 ```shell
 ./kafka-console-consumer.sh --bootstrap-server 10.31.167.10:9092 --consumer-property group.id=testGroup1 --topic test
 
-./kafka-console-consumer.sh --bootstrap-server 10.31.167.10:9092 --consumer-property group.id=testGroup2 --topic testCopy to clipboardErrorCopied
+./kafka-console-consumer.sh --bootstrap-server 10.31.167.10:9092 --consumer-property group.id=testGroup2 --topic test
 ```
 
 ## [4.查看消费组及信息](http://notes.xiyankt.com/#/kafka/kafka?id=_4查看消费组及信息)
@@ -213,7 +213,7 @@ kafka实现多播，只需要让不同的消费者处于不同的消费组即可
 # 查看当前主题下有哪些消费组
 ./kafka-consumer-groups.sh --bootstrap-server 10.31.167.10:9092 --list
 # 查看消费组中的具体信息：比如当前偏移量、最后一条消息的偏移量、堆积的消息数量
-./kafka-consumer-groups.sh --bootstrap-server 172.16.253.38:9092 --describe --group testGroupCopy to clipboardErrorCopied
+./kafka-consumer-groups.sh --bootstrap-server 172.16.253.38:9092 --describe --group testGroup
 ```
 
 ![输入图片说明](http://notes.xiyankt.com/kafka/images/QQ%E6%88%AA%E5%9B%BE20220110125233.png)
@@ -237,13 +237,13 @@ kafka实现多播，只需要让不同的消费者处于不同的消费组即可
 ### [为一个主题创建多个分区](http://notes.xiyankt.com/#/kafka/kafka?id=为一个主题创建多个分区)
 
 ```shell
-./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 2 --topic test1Copy to clipboardErrorCopied
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 2 --topic test1
 ```
 
 **可以通过这样的命令查看topic的分区信息**
 
 ```shell
-./kafka-topics.sh --describe --zookeeper localhost:2181 --topic test1Copy to clipboardErrorCopied
+./kafka-topics.sh --describe --zookeeper localhost:2181 --topic test1
 ```
 
 ### [分区的作用：](http://notes.xiyankt.com/#/kafka/kafka?id=分区的作用：)
@@ -270,7 +270,7 @@ kafka实现多播，只需要让不同的消费者处于不同的消费组即可
   ```shell
   broker.id= 0
   listeners=PLAINTEXT://192.168.65.60:
-  log.dir=/usr/local/data/kafka-logsCopy to clipboardErrorCopied
+  log.dir=/usr/local/data/kafka-logs
   ```
 
 - server1.properties
@@ -278,7 +278,7 @@ kafka实现多播，只需要让不同的消费者处于不同的消费组即可
   ```shell
   broker.id= 1
   listeners=PLAINTEXT://192.168.65.60:
-  log.dir=/usr/local/data/kafka-logs-Copy to clipboardErrorCopied
+  log.dir=/usr/local/data/kafka-logs
   ```
 
 - server2.properties
@@ -286,7 +286,7 @@ kafka实现多播，只需要让不同的消费者处于不同的消费组即可
   ```shell
   broker.id= 2
   listeners=PLAINTEXT://192.168.65.60:
-  log.dir=/usr/local/data/kafka-logs-Copy to clipboardErrorCopied
+  log.dir=/usr/local/data/kafka-logs
   ```
 
   ### [使用如下命令来启动 3 台服务器](http://notes.xiyankt.com/#/kafka/kafka?id=使用如下命令来启动-3-台服务器)
@@ -294,7 +294,7 @@ kafka实现多播，只需要让不同的消费者处于不同的消费组即可
 ```shell
 ./kafka-server-start.sh -daemon../config/server0.properties
 ./kafka-server-start.sh -daemon../config/server1.properties
-./kafka-server-start.sh -daemon../config/server2.propertiesCopy to clipboardErrorCopied
+./kafka-server-start.sh -daemon../config/server2.properties
 ```
 
 搭建完后通过查看zk中的/brokers/ids 看是否启动成功
@@ -304,7 +304,7 @@ kafka实现多播，只需要让不同的消费者处于不同的消费组即可
 > 副本是对分区的备份。在集群中，不同的副本会被部署在不同的broker上。下面例子：创建 1个主题， 2 个分区、 3 个副本。
 
 ```shell
-./kafka-topics.sh --create --zookeeper 172.16.253.35:2181 --replication-factor 3 --partitions 2 --topic my-replicated-topicCopy to clipboardErrorCopied
+./kafka-topics.sh --create --zookeeper 172.16.253.35:2181 --replication-factor 3 --partitions 2 --topic my-replicated-topic
 ```
 
 ![输入图片说明](http://notes.xiyankt.com/kafka/images/QQ%E6%88%AA%E5%9B%BE20220110133849.png)
@@ -325,7 +325,7 @@ kafka实现多播，只需要让不同的消费者处于不同的消费组即可
 ps -aux | grep server.properties
 kill 17631
 # 查看topic情况
-./kafka-topics.sh --describe --zookeeper 172.16.253.35:2181 --topic my-replicated-topicCopy to clipboardErrorCopied
+./kafka-topics.sh --describe --zookeeper 172.16.253.35:2181 --topic my-replicated-topic
 ```
 
 isr： 可以同步的broker节点和已同步的broker节点，存放在isr集合中。
@@ -340,13 +340,13 @@ isr： 可以同步的broker节点和已同步的broker节点，存放在isr集�
 ## [4.kafka集群消息的发送](http://notes.xiyankt.com/#/kafka/kafka?id=_4kafka集群消息的发送)
 
 ```shell
-./kafka-console-producer.sh --broker-list 172.16.253.38:9092,172.16.253.38:9093,172.16.253.38:9094 --topic my-replicated-topicCopy to clipboardErrorCopied
+./kafka-console-producer.sh --broker-list 172.16.253.38:9092,172.16.253.38:9093,172.16.253.38:9094 --topic my-replicated-topic
 ```
 
 ## [5.kafka集群消息的消费](http://notes.xiyankt.com/#/kafka/kafka?id=_5kafka集群消息的消费)
 
 ```shell
-./kafka-console-consumer.sh --bootstrap-server 172.16.253.38:9092,172.16.253.38:9093,172.16.253.38:9094 --from-beginning --topic my-replicated-topicCopy to clipboardErrorCopied
+./kafka-console-consumer.sh --bootstrap-server 172.16.253.38:9092,172.16.253.38:9093,172.16.253.38:9094 --from-beginning --topic my-replicated-topic
 ```
 
 ## [6.关于分区消费组消费者的细节](http://notes.xiyankt.com/#/kafka/kafka?id=_6关于分区消费组消费者的细节)
@@ -368,17 +368,15 @@ isr： 可以同步的broker节点和已同步的broker节点，存放在isr集�
     <groupId>org.apache.kafka</groupId>
     <artifactId>kafka-clients</artifactId>
     <version>2.4.1</version>
-</dependency>Copy to clipboardErrorCopied
+</dependency>
 ```
 
 ## [2.生产者发送消息的基本实现](http://notes.xiyankt.com/#/kafka/kafka?id=_2生产者发送消息的基本实现)
 
 ```java
-#### //消息的发送方
+//消息的发送方
 public class MyProducer {
-
 private final static String TOPIC_NAME = "my-replicated-topic";
-
 public static void main(String[] args) throws ExecutionException,InterruptedException {
 Properties props = new Properties();
 props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"10.31.167.10:9092,10.31.167.10:9093,10.31.167.10:9094");
@@ -399,14 +397,14 @@ System.out.println("同步方式发送消息结果：" + "topic-" +metadata.topi
 ## [3.发送消息到指定分区上](http://notes.xiyankt.com/#/kafka/kafka?id=_3发送消息到指定分区上)
 
 ```java
-ProducerRecord<String, String> producerRecord = new ProducerRecord<String, String>(TOPIC_NAME, 0 , order.getOrderId().toString(), JSON.toJSONString(order));Copy to clipboardErrorCopied
+ProducerRecord<String, String> producerRecord = new ProducerRecord<String, String>(TOPIC_NAME, 0 , order.getOrderId().toString(), JSON.toJSONString(order));
 ```
 
 ## [4.未指定分区，则会通过业务key的hash运算，算出消息往哪个分区上发](http://notes.xiyankt.com/#/kafka/kafka?id=_4未指定分区，则会通过业务key的hash运算，算出消息往哪个分区上发)
 
 ```java
 //未指定发送分区，具体发送的分区计算公式：hash(key)%partitionNum
-ProducerRecord<String, String> producerRecord = new ProducerRecord<String, String>(TOPIC_NAME, order.getOrderId().toString(), JSON.toJSONString(order));Copy to clipboardErrorCopied
+ProducerRecord<String, String> producerRecord = new ProducerRecord<String, String>(TOPIC_NAME, order.getOrderId().toString(), JSON.toJSONString(order));
 ```
 
 ## [5.同步发送](http://notes.xiyankt.com/#/kafka/kafka?id=_5同步发送)
@@ -416,7 +414,7 @@ ProducerRecord<String, String> producerRecord = new ProducerRecord<String, Strin
 ```java
 //等待消息发送成功的同步阻塞方法
 RecordMetadata metadata = producer.send(producerRecord).get();
-System.out.println("同步方式发送消息结果：" + "topic-" +metadata.topic() + "|partition-"+ metadata.partition() + "|offset-" +metadata.offset());Copy to clipboardErrorCopied
+System.out.println("同步方式发送消息结果：" + "topic-" +metadata.topic() + "|partition-"+ metadata.partition() + "|offset-" +metadata.offset());
 ```
 
 ![输入图片说明](http://notes.xiyankt.com/kafka/images/QQ%E6%88%AA%E5%9B%BE20220110142708.png)
@@ -441,7 +439,7 @@ if (metadata != null) {
 System.out.println("异步方式发送消息结果：" + "topic-" +metadata.topic() + "|partition-"+ metadata.partition() + "|offset-" + metadata.offset());
          }
     }
-});Copy to clipboardErrorCopied
+});
 ```
 
 ## [7.关于生产者的ack参数配置](http://notes.xiyankt.com/#/kafka/kafka?id=_7关于生产者的ack参数配置)
@@ -455,7 +453,7 @@ System.out.println("异步方式发送消息结果：" + "topic-" +metadata.topi
 ### [code:](http://notes.xiyankt.com/#/kafka/kafka?id=code)
 
 ```java
-props.put(ProducerConfig.ACKS_CONFIG, "1");Copy to clipboardErrorCopied
+props.put(ProducerConfig.ACKS_CONFIG, "1");
 ```
 
 ## [8.其他一些细节](http://notes.xiyankt.com/#/kafka/kafka?id=_8其他一些细节)
@@ -494,7 +492,7 @@ System.out.printf("收到消息：partition = %d,offset = %d, key =%s, value = %
             }
         }
     }
-}Copy to clipboardErrorCopied
+}
 ```
 
 ## [2.自动提交offset](http://notes.xiyankt.com/#/kafka/kafka?id=_2自动提交offset)
@@ -505,7 +503,7 @@ System.out.printf("收到消息：partition = %d,offset = %d, key =%s, value = %
 // 是否自动提交offset，默认就是true
 props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
 // 自动提交offset的间隔时间
-props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");Copy to clipboardErrorCopied
+props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
 ```
 
 消费者poll到消息后默认情况下，会自动向broker的_consumer_offsets主题提交当前主题-分区消费的偏移量。
@@ -517,7 +515,7 @@ props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");Copy to clipboa
 - 设置手动提交参数
 
 ```java
-props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");Copy to clipboardErrorCopied
+props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 ```
 
 ### [在消费完消息后进行手动提交](http://notes.xiyankt.com/#/kafka/kafka?id=在消费完消息后进行手动提交)
@@ -529,7 +527,7 @@ props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");Copy to clipboardEr
   // 手动同步提交offset，当前线程会阻塞直到offset提交成功
   // 一般使用同步提交，因为提交之后一般也没有什么逻辑代码了
   consumer.commitSync();
-  }Copy to clipboardErrorCopied
+  }
   ```
 
 - 手动异步提交
@@ -546,7 +544,7 @@ props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");Copy to clipboardEr
             }
          }
     });
-  }Copy to clipboardErrorCopied
+  }
   ```
 
 ## [4.消费者poll消息的过程](http://notes.xiyankt.com/#/kafka/kafka?id=_4消费者poll消息的过程)
@@ -555,7 +553,7 @@ props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");Copy to clipboardEr
 - 默认一次poll 500条消息
 
 ```java
-props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500 );Copy to clipboardErrorCopied
+props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500 );
 ```
 
 可以根据消费速度的快慢来设置，因为如果两次poll的时间如果超出了30s的时间间隔，kafka会认为其消费能力过弱，将其踢出消费组。将分区分配给其他消费者。
@@ -563,45 +561,45 @@ props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500 );Copy to clipboardErrorCo
 可以通过这个值进行设置：
 
 ```java
-props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 30 * 1000 );Copy to clipboardErrorCopied
+props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 30 * 1000 );
 ```
 
 如果每隔1s内没有poll到任何消息，则继续去poll消息，循环往复，直到poll到消息。如果超出了1s，则此次⻓轮询结束。
 
 ```java
-ConsumerRecords<String, String> records =consumer.poll(Duration.ofMillis( 1000 ));Copy to clipboardErrorCopied
+ConsumerRecords<String, String> records =consumer.poll(Duration.ofMillis( 1000 ));
 ```
 
 消费者发送心跳的时间间隔
 
 ```java
-props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 1000 );Copy to clipboardErrorCopied
+props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 1000 );
 ```
 
 kafka如果超过 10 秒没有收到消费者的心跳，则会把消费者踢出消费组，进行rebalance，把分区分配给其他消费者。
 
 ```java
-props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 10 * 1000 );Copy to clipboardErrorCopied
+props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 10 * 1000 );
 ```
 
 ## [5.指定分区消费](http://notes.xiyankt.com/#/kafka/kafka?id=_5指定分区消费)
 
 ```java
-consumer.assign(Arrays.asList(new TopicPartition(TOPIC_NAME, 0 )));Copy to clipboardErrorCopied
+consumer.assign(Arrays.asList(new TopicPartition(TOPIC_NAME, 0 )));
 ```
 
 ## [6.消息回溯消费](http://notes.xiyankt.com/#/kafka/kafka?id=_6消息回溯消费)
 
 ```java
 consumer.assign(Arrays.asList(new TopicPartition(TOPIC_NAME, 0 )));
-consumer.seekToBeginning(Arrays.asList(new TopicPartition(TOPIC_NAME,0 )));Copy to clipboardErrorCopied
+consumer.seekToBeginning(Arrays.asList(new TopicPartition(TOPIC_NAME,0 )));
 ```
 
 ## [7.指定offset消费](http://notes.xiyankt.com/#/kafka/kafka?id=_7指定offset消费)
 
 ```java
 consumer.assign(Arrays.asList(new TopicPartition(TOPIC_NAME, 0 )));
-consumer.seek(new TopicPartition(TOPIC_NAME, 0 ), 10 );Copy to clipboardErrorCopied
+consumer.seek(new TopicPartition(TOPIC_NAME, 0 ), 10 );
 ```
 
 ## [8.从指定时间点消费](http://notes.xiyankt.com/#/kafka/kafka?id=_8从指定时间点消费)
@@ -627,7 +625,7 @@ for (Map.Entry<TopicPartition, OffsetAndTimestamp> entry :parMap.entrySet()) {
         consumer.assign(Arrays.asList(key));
         consumer.seek(key, offset);
     }
-}Copy to clipboardErrorCopied
+}
 ```
 
 ## [9.新消费组的消费偏移量](http://notes.xiyankt.com/#/kafka/kafka?id=_9新消费组的消费偏移量)
@@ -639,7 +637,7 @@ for (Map.Entry<TopicPartition, OffsetAndTimestamp> entry :parMap.entrySet()) {
 - earliest：第一次从头开始消费，以后按照消费offset记录继续消费，这个需要区别于consumer.seekToBeginning(每次都从头开始消费)
 
   ```shell
-  props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");Copy to clipboardErrorCopied
+  props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
   ```
 
   # [八 、Springboot中使用Kafka](http://notes.xiyankt.com/#/kafka/kafka?id=八-、springboot中使用kafka)
@@ -650,7 +648,7 @@ for (Map.Entry<TopicPartition, OffsetAndTimestamp> entry :parMap.entrySet()) {
 <dependency>
     <groupId>org.springframework.kafka</groupId>
     <artifactId>spring-kafka</artifactId>
-</dependency>Copy to clipboardErrorCopied
+</dependency>
 ```
 
 ## [2.配置文件](http://notes.xiyankt.com/#/kafka/kafka?id=_2配置文件)
@@ -710,7 +708,7 @@ public class KafkaController {
     public void send() {
         kafkaTemplate.send(TOPIC_NAME, 0 , "key", "this is a msg");
     }
-}Copy to clipboardErrorCopied
+}
 ```
 
 ## [4.消息消费者](http://notes.xiyankt.com/#/kafka/kafka?id=_4消息消费者)
@@ -725,7 +723,7 @@ public class KafkaController {
     System.out.println(record);
     //手动提交offset
     ack.acknowledge();
-  }Copy to clipboardErrorCopied
+  }
   ```
 
 - 设置消费组、多topic、指定分区、指定偏移量消费及设置消费者个数。
@@ -741,7 +739,7 @@ public void listenGroup(ConsumerRecord<String, String> record,Acknowledgment ack
     System.out.println(record);
     //手动提交offset
     ack.acknowledge();
-}Copy to clipboardErrorCopied
+}
 ```
 
 # [九、Kafka集群Controller、Rebalance和HW](http://notes.xiyankt.com/#/kafka/kafka?id=九、kafka集群controller、rebalance和hw)
@@ -833,7 +831,7 @@ cluster1.zk.list=172.16.253.35:2181
 kafka.eagle.driver=com.mysql.cj.jdbc.Driver
 kafka.eagle.url=jdbc:mysql://172.16.253.22:3306/ke?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull
 kafka.eagle.username=root
-kafka.eagle.password= 123456Copy to clipboardErrorCopied
+kafka.eagle.password= 123456
 ```
 
 - 修改/etc/profile
@@ -842,19 +840,19 @@ kafka.eagle.password= 123456Copy to clipboardErrorCopied
   export  JAVA_HOME=/usr/local/jdk/jdk1.8.0_191
   CLASSPATH=.:$JAVA_HOME/lib/tools.jar:$JAVA_HOME/lib/dt.jar
   export KE_HOME=/home/aisys/efak-web-2.0.9
-  export PATH=$PATH:$KE_HOME/bin:$JAVA_HOME/binCopy to clipboardErrorCopied
+  export PATH=$PATH:$KE_HOME/bin:$JAVA_HOME/bin
   ```
 
 - 刷新配置
 
   ```
-  source /etc/profileCopy to clipboardErrorCopied
+  source /etc/profile
   ```
 
 - 进入到bin目录，为ke.sh增加可执行的权限
 
 ```shell
-chmod +x ke.shCopy to clipboardErrorCopied
+chmod +x ke.sh
 ```
 
 - 启动kafka-eagle
