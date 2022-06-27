@@ -1,0 +1,5 @@
+#tools:
+#  ip:
+#    cycle: 10
+#    cycleReset: false
+#    model: "detail"

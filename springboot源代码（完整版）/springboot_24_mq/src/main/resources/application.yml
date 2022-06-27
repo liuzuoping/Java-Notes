@@ -1,0 +1,23 @@
+server:
+  port: 80
+
+
+spring:
+  activemq:
+    broker-url: tcp://localhost:61616
+  jms:
+    pub-sub-domain: true
+    template:
+      default-destination: itheima
+  rabbitmq:
+    host: localhost
+    port: 5672
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: order
+
+rocketmq:
+  name-server: localhost:9876
+  producer:
+    group: group_rocketmq
