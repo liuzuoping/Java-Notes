@@ -1,9 +1,8 @@
 ### java多线程
 
 - [java多线程](#toc_0)
-
-- - [如何评估一台机器多少线程比较合适？ 理论指导和压测手段？](#toc_1)
-  - [ThreadLocal的作用， 副作用？](#toc_2)
+- [如何评估一台机器多少线程比较合适？ 理论指导和压测手段？](#toc_1)
+- - [ThreadLocal的作用， 副作用？](#toc_2)
   - [什么叫线程安全和非安全， 对我们编程有什么影响？](#toc_3)
   - [如何在高并发场景下，安全的创建一个单例模式](#toc_4)
   - [Java中如何实现多线程?](#toc_5)
@@ -40,13 +39,101 @@
 
 #### 如何评估一台机器多少线程比较合适？ 理论指导和压测手段？
 
+线程的执行是由CPU进行调度的，一个CPU在同一时刻只会执行一个线程。使用多线程的主要目的：**降低延迟，提高吞吐量**
+
+最佳线程数目 = （（线程等待时间+线程CPU时间）/线程CPU时间 ）* CPU数目
+
+对于CPU密集型的计算场景，理论上线程的数量=CPU核数就是最合适的。不过在工程上，线程的数量一般会设置为CPU核数+1，这样的话，当线程因为偶尔的内存页失效或其他原因导致阻塞时，这个额外的线程可以顶上，从而保证CPU的利用率
+
+对于I/O密集型的计算场景，最佳线程数=1+(I/O耗时/CPU耗时)，针对多核CPU，我目前见过两种比较合理的公式：
+
+最佳线程数=CPU核数×[1+(I/O耗时/CPU耗时)]
+
+线程数=CPU核数×目标CPU利用率×(1+平均等待时间/平均工作时间)
+
 #### ThreadLocal的作用， 副作用？
+
++ [ThreadLocal主要用来存储当前上下文的变量信息，他可以保障存储进去的信息只能被当前的线程读取到，并且线程之间不会受到影响。ThreadLocal为变量在每个线程都创建了一个副本，那么每个线程可以访问自己的内部的副本变量。](#toc_0)
+
+- [ThreadLocal中的set（）、get（）方法都是调用了ThreadLocalMap中的set（）、get（）方法。最终的变量是放在了当前线程的 ThreadLocalMap 中，并不是存在 ThreadLocal 上，ThreadLocal 可以理解为只是ThreadLocalMap的封装，传递了变量值。ThreadLocalMap的map,这个map就是用来存储与这个线程绑定的变量,map的key就是ThreadLocal对象,value就是线程正在执行的任务中的某个变量的包装类Entry。](#toc_1)
+- [内存泄露问题](#toc_0)——[ThreadLocalMap中的key是弱引用，而value是强引用。所以，如果ThreadLocal没有被外部强引用的情况下，在垃圾回收时，key会被清空掉，而value不会。ThreadLocal中就会出现key为null的Entry。假如我们不采取措施，value永远不会被GC回收，这个时候就可能会产生内存泄漏问题。](#toc_0)
+- [在使用ThreadLocal对象,尽量使用static,不然会使线程的ThreadLocalMap产生太多Entry,从而造成内存泄露。](#toc_1)
+
+```java
+//若依项目使用实例
+public class DynamicDataSourceContextHolder{
+    public static final Logger log = LoggerFactory.getLogger(DynamicDataSourceContextHolder.class);
+
+    /**
+     * 使用ThreadLocal维护变量，ThreadLocal为每个使用该变量的线程提供独立的变量副本，
+     *  所以每一个线程都可以独立地改变自己的副本，而不会影响其它线程所对应的副本。
+     */
+    private static final ThreadLocal<String> CONTEXT_HOLDER = new ThreadLocal<>();
+
+    /**
+     * 设置数据源的变量
+     */
+    public static void setDataSourceType(String dsType){
+        log.info("切换到{}数据源", dsType);
+        CONTEXT_HOLDER.set(dsType);
+    }
+
+    /**
+     * 获得数据源的变量
+     */
+    public static String getDataSourceType(){
+        return CONTEXT_HOLDER.get();
+    }
+
+    /**
+     * 清空数据源变量
+     */
+    public static void clearDataSourceType(){
+        CONTEXT_HOLDER.remove();
+    }
+}
+```
 
 #### 什么叫线程安全和非安全， 对我们编程有什么影响？
 
-HashMap 和 ConcurrentHashMap的区别
+- [线程安全：是多线程访问时，采用加锁机制，当一个线程访问该类的某个数据时，进行保护，其他线程不能进行访问直到该线程读取完，其他线程才可使用。不会出现数据不一致或者数据污染。](#toc_0)
+- [非线程安全：是多线程访问时，不提供数据访问保护，有可能出现多个线程先后更改数据造成所得到的数据是脏数据。所得数据可能不一致](#toc_1)
+- [区别：非线程安全是指多线程操作同一个对象可能会出现问题。而线程安全则是多线程操作同一个对象不会有问题](#toc_2)
+
+#### HashMap 和 ConcurrentHashMap的区别
+
+- [HashMap不支持并发操作，没有同步方法，ConcurrentHashMap支持并发操作，通过继承 ReentrantLock（JDK1.7重入锁）/CAS和synchronized(JDK1.8内置锁)来进行加锁（分段锁），每次需要加锁的操作锁住的是一个 segment，这样只要保证每个 Segment 是线程安全的，也就实现了全局的线程安全。](#toc_0)
+- [JDK1.8之前HashMap的结构为数组+链表，JDK1.8之后HashMap的结构为数组+链表+红黑树；JDK1.8之前ConcurrentHashMap的结构为segment数组+数组+链表，JDK1.8之后ConcurrentHashMap的结构为数组+链表+红黑树。](#toc_0)
+- [区别：非线程安全是指多线程操作同一个对象可能会出现问题。而线程安全则是多线程操作同一个对象不会有问题](#toc_2)
 
 #### 如何在高并发场景下，安全的创建一个单例模式
+
+为了达到线程安全，又能提高代码执行效率，我们这里可以采用DCL的双检查锁机制来完成，这里在声明变量时使用了volatile关键字来保证其线程间的可见性；在同步代码块中使用二次检查，以保证其不被重复实例化。集合其二者，这种实现方式既保证了其高效性，也保证了其线程安全性。
+
+```java
+public class MySingleton {
+	//使用volatile关键字保其可见性
+	volatile private static MySingleton instance = null;
+	private MySingleton(){} 
+	public static MySingleton getInstance() {
+		try {  
+			if(instance != null){//懒汉式 
+			}else{
+				//创建实例之前可能会有一些准备性的耗时工作 
+				Thread.sleep(300);
+				synchronized (MySingleton.class) {
+					if(instance == null){//二次检查
+						instance = new MySingleton();
+					}
+				}
+			} 
+		} catch (InterruptedException e) { 
+			e.printStackTrace();
+		}
+		return instance;
+	}
+}
+```
 
 #### Java中如何实现多线程?
 
@@ -60,7 +147,7 @@ HashMap 和 ConcurrentHashMap的区别
 #### volatile的原理，作用，能代替锁么
 
 1. volatile 关键字的作用 保证内存的可见性 防止指令重排. 即每次读取到volatile变量，一定是最新的数据
-2. volatile 并不能保证线程安全性。而 synchronized 则可实现线程的安全性 
+2. volatile 并不能保证线程安全性。而 synchronized 则可实现线程的安全性
 
 #### Lock与Synchronized的区别
 
@@ -183,7 +270,7 @@ ConcurrentHashMap的并发度就是segment的大小，默认为16，这意味着
 #### 怎么终止一个线程？如何优雅地终止线程？
 
 - 终止线程的stop方法，通过stop方法可以很快速、方便地终止一个线程
-- 优雅终止需要添加一个变量，判断这个变量在某个值的时候就退出循环，这时候每个循环为一个整合不被强行终止就不会影响单个业务的执行结果。 
+- 优雅终止需要添加一个变量，判断这个变量在某个值的时候就退出循环，这时候每个循环为一个整合不被强行终止就不会影响单个业务的执行结果。
 
 ![img](https://cdn.nlark.com/yuque/0/2019/png/406432/1565342631777-789483a5-56fb-41f6-84d7-fe342ef84812.png)￼
 
