@@ -60,34 +60,21 @@
 - [在使用ThreadLocal对象,尽量使用static,不然会使线程的ThreadLocalMap产生太多Entry,从而造成内存泄露。](#toc_1)
 
 ```java
-//若依项目使用实例
+//项目使用实例
 public class DynamicDataSourceContextHolder{
-    public static final Logger log = LoggerFactory.getLogger(DynamicDataSourceContextHolder.class);
-
     /**
      * 使用ThreadLocal维护变量，ThreadLocal为每个使用该变量的线程提供独立的变量副本，
      *  所以每一个线程都可以独立地改变自己的副本，而不会影响其它线程所对应的副本。
      */
     private static final ThreadLocal<String> CONTEXT_HOLDER = new ThreadLocal<>();
 
-    /**
-     * 设置数据源的变量
-     */
     public static void setDataSourceType(String dsType){
         log.info("切换到{}数据源", dsType);
         CONTEXT_HOLDER.set(dsType);
     }
-
-    /**
-     * 获得数据源的变量
-     */
     public static String getDataSourceType(){
         return CONTEXT_HOLDER.get();
     }
-
-    /**
-     * 清空数据源变量
-     */
     public static void clearDataSourceType(){
         CONTEXT_HOLDER.remove();
     }
@@ -108,7 +95,7 @@ public class DynamicDataSourceContextHolder{
 
 #### 如何在高并发场景下，安全的创建一个单例模式
 
-为了达到线程安全，又能提高代码执行效率，我们这里可以采用DCL的双检查锁机制来完成，这里在声明变量时使用了volatile关键字来保证其线程间的可见性；在同步代码块中使用二次检查，以保证其不被重复实例化。集合其二者，这种实现方式既保证了其高效性，也保证了其线程安全性。
+- [为了达到线程安全，又能提高代码执行效率，我们这里可以采用DCL的双检查锁机制来完成，这里在声明变量时使用了volatile关键字来保证其线程间的可见性；在同步代码块中使用二次检查，以保证其不被重复实例化。集合其二者，这种实现方式既保证了其高效性，也保证了其线程安全性。](#toc_2)
 
 ```java
 public class MySingleton {
@@ -117,16 +104,16 @@ public class MySingleton {
 	private MySingleton(){} 
 	public static MySingleton getInstance() {
 		try {  
-			if(instance != null){//懒汉式 
-			}else{
-				//创建实例之前可能会有一些准备性的耗时工作 
-				Thread.sleep(300);
-				synchronized (MySingleton.class) {
-					if(instance == null){//二次检查
-						instance = new MySingleton();
-					}
+		    if(instance != null){//懒汉式 
+		    }else{
+			//创建实例之前可能会有一些准备性的耗时工作 
+			Thread.sleep(300);
+			synchronized (MySingleton.class) {
+				if(instance == null){//二次检查
+					instance = new MySingleton();
 				}
-			} 
+			 }
+		    } 
 		} catch (InterruptedException e) { 
 			e.printStackTrace();
 		}
@@ -160,9 +147,31 @@ public class MySingleton {
 
 #### synchronized是java中的一个关键字，也就是说是Java语言内置的特性。那么为什么会出现Lock呢？
 
+- [因为synchronized获取不到锁的时候会阻塞，并且阻塞不可被打断的特性会导致可能会产生死锁的问题，为了解决这个问题，Java就提供了Lock锁的实现，从主动放弃获取锁或者被动放弃获取锁的方式，解决一直阻塞可能产生的死锁问题。](#toc_2)
+
+```java
+void lockInterruptibly() throws InterruptedException;
+boolean tryLock();
+boolean tryLock(long time, TimeUnit unit) throws InterruptedException;
+```
+
+- [第一个方法阻塞可以被打断的加锁方法，这是一个被动放弃获取锁的方法。就是说其它线程主动当调用阻塞线程的interrupt方法之后，该阻塞线程就会放弃继续获取锁，然后抛出InterruptedException 异常，所以对于使用方来说，只要捕获这个异常，就能保证线程的代码继续执行了。](#toc_2)
+- [第二个方法是尝试加锁，加锁失败后就放弃加锁，不会阻塞，直接返回false。](#toc_0)
+- [第三个方法就是尝试加锁失败后在阻塞的一定时间之后，如果还没有获取到锁，那么就放弃获取锁。](#toc_0)
+- [Lock接口的实现有很多，但基本上都是基于Java的AQS的实现来完成的。AQS其实主要是维护了一个锁的状态字段state和一个双向链表。当线程获取锁失败之后，就会加入到双向链表中，然后阻塞或者不阻塞，这得看具体的方法实现。](#toc_0)
+
 #### Synchronized有哪几种用法
 
+[synchronized 用 3 种用法](#toc_0):
+
+- [用它可以来修饰普通方法、](#toc_0)
+- [用它可以来修饰](#toc_0)静态方法
+- [用它可以来修饰](#toc_0)代码块
+- [其中最常用的是修饰代码块，而修饰代码块时需要指定一个加锁对象，这个加锁对象通常使用 this 或 xxx.class 来表示，当使用 this 时，表示使用当前对象来加锁，而使用 class 时，表示表示使用某个类（非类对象实例）来加锁，它是全局生效的。](#toc_0)
+
 #### 解释以下名词：重排序，自旋锁，偏向锁，轻量级锁，可重入锁，公平锁，非公平锁，乐观锁，悲观锁
+
+- [https://zhuanlan.zhihu.com/p/71156910](#toc_0)
 
 #### 锁有哪几种？
 
@@ -252,20 +261,38 @@ ConcurrentHashMap的并发度就是segment的大小，默认为16，这意味着
 
 #### run()和start()方法区别
 
+- [通过调用Thread类的start()方法来启动一个线程，这时此线程是处于就绪状态，并没有运行。start是真正调用底层的代码来创建thread，并从底层调用run（）方法，执行我们自定义的任务。](#toc_0)
+- [而如果直接用Run方法，这只是调用一个方法而已，程序中依然只有主线程--这一个线程，其程序执行路径还是只有一条，这样就没有达到写线程的目的。](#toc_0)
+- [run()只是在当前线程中执行任务，而start才是真正生成thread，并放在cpu中调度。](#toc_0)
+
 #### 如何控制某个方法允许并发访问线程的个数？
 
-- 按并发控制，分布式场景
-- 按时间控制
+- [Semaphore类是一个计数信号量，必须由获取它的线程释放，通常可以用于限制并发访问的线程数目。](#toc_0)
+- [获得Semaphore对象](#toc_0),public Semaphore(int permits, [boolean](https://so.csdn.net/so/search?q=boolean&spm=1001.2101.3001.7020) fair),permits：初始化可用的许可个数,fair：若该信号量保证在使用时按[FIFO](https://so.csdn.net/so/search?q=FIFO&spm=1001.2101.3001.7020)(先进先出)的顺序，则为true，否则为false
 
 #### 多个线程同时读写，读线程的数量远远大于写线程，你认为应该如何解决并发的问题？你会选择加什么样的锁？
 
+- [使用volatile关键字（一写多读）](#toc_0)
+- [使用ReadWriteLock读写锁](#toc_0)[（多写多读）](#toc_0)
+- [使用写时复制容器CopyOnWrite系列](#toc_0)
+
 #### 线程池内的线程如果全部忙，提交一个新的任务，会发生什什么？队列全部塞满了之后，还是忙，再提交会发生什么？
+
+- [如果使用的是无界队列 LinkedBlockingQueue，也就是无界队列的话，没关系，继续添加任务到阻塞队列中等待执行，因为 LinkedBlockingQueue 可以近乎认为是一个无穷大的队列，可以无限存放任务](#toc_0)
+- [如果使用的是有界队列比如 ArrayBlockingQueue，任务首先会被添加到ArrayBlockingQueue中，ArrayBlockingQueue 满了，会根据maximumPoolSize 的值增加线程数量，如果增加了线程数量还是处理不过来，ArrayBlockingQueue 继续满，那么则会使用拒绝策略RejectedExecutionHandler处理满了的任务，默认是 AbortPolicy](#toc_0)
 
 #### 剖析Disruptor:为什么会这么快？
 
-[剖析Disruptor:为什么会这么快？](http://ifeve.com/locks-are-bad/)
+[Disruptor相对于传统方式的优点](http://ifeve.com/locks-are-bad/)：
+
+- [没有竞争=没有锁=非常快。在生产者/消费者模式下，disruptor号称“无锁并行框架”（要知道BlockingQueue是利用了Lock锁机制来实现的）](#toc_0)
+- [所有访问者都记录自己的序号的实现方式，允许多个生产者与多个消费者共享相同的数据结构。](#toc_0)
+- [在每个对象中都能跟踪序列号（ring buffer，claim Strategy，生产者和消费者），加上神奇的](#toc_0)[cache line padding](http://code.google.com/p/disruptor/source/browse/trunk/code/src/main/com/lmax/disruptor/RingBuffer.java)，就意味着没有为伪共享和非预期的竞争。
 
 #### 怎么中断一个线程？如何保证中断业务不影响？
+
+- [每个线程都有一个与之相关联的 Boolean 属性，用于表示线程的 *中断状态（interrupted status）* 。中断状态初始时为 false；当另一个线程通过调用 `Thread.interrupt()` 中断一个线程](#toc_0)
+- [可以用 Java 平台提供的协作中断机制来构造灵活的取消策略。各活动可以自行决定它们是可取消的还是不可取消的，以及如何对中断作出响应，如果立即返回会危害应用程序完整性的话，它们还可以推迟中断。即使您想在代码中完全忽略中断，也应该确保在捕捉到 InterruptedException但是没有重新抛出它的情况下，恢复中断状态，以免调用它的代码无法获知中断的发生。](#toc_0)
 
 #### 怎么终止一个线程？如何优雅地终止线程？
 
@@ -276,11 +303,23 @@ ConcurrentHashMap的并发度就是segment的大小，默认为16，这意味着
 
 #### 怎么控制同一时间只有3个线程运行？
 
+- [同时控制两个线程进入临界区，一种方式可以考虑用信号量。](#toc_0)
+- [考虑生产者、消费者模型。想要进入临界区的线程先在一个等待队列中等待，然后由消费者每次消费两个。这种实现方式，类似于实现一个线程池，所以也可以考虑实现一个 ThreadPool类，然后再实现一个调度器类，最后实现一个每次选择三个线程执行的调度算法。](#toc_0)
+
 #### Jdk中排查多线程问题用什么命令？
+
+jstack-作用：生成VM当前时刻线程的快照(threaddump,即当前进程中所有线程的信息)
+目的：帮助定位程序问题出现的原因，如长时间停顿、CPU占用率过高等
 
 #### Java中用到了什么线程调度算法？
 
+- [一、优先调度算法——1、先来先服务调度算法（FCFS），2、短作业(进程)优先调度算法](#toc_0)
+- [二、高优先权优先调度算法——1、非抢占式优先权算法，2、抢占式优先权调度算法，3、高响应比优先调度算法](#toc_0)
+- [三、基于时间片的轮转调度算法——1、时间片轮转法，2、多级反馈队列调度算法](#toc_0)
+
 #### Thread.sleep(0)的作用是什么？
+
+Thread.Sleep(0)作用，就是“触发操作系统立刻重新进行一次CPU竞争”。竞争的结果也许是当前线程仍然获得CPU控制权，也许会换成别的线程获得CPU控制权。这也是我们在大循环里面经常会写一句Thread.Sleep(0) ，因为这样就给了其他线程比如Paint线程获得CPU控制权的权力，这样界面就不会假死在那里。
 
 #### sleep和wait的区别
 
@@ -300,10 +339,23 @@ sleep需要捕获或者抛出异常，而wait/notify/notifyAll不需要
 
 #### Hashtable的size()方法为什么要做同步？
 
+同一时间只能有一条线程执行固定类的同步方法，但是对于类的非同步方法，可以多条线程同时访问。所以，这样就有问题了，可能线程 A 在执行 Hashtable 的 put方法添加数据，线程 B 则可以正常调用 size()方法读取 Hashtable 中当前元素的个数，那读取到的值可能不是最新的，可能线程 A 添加了完了数据，但是没有对size++，线程 B 就已经读取 size了，那么对于线程 B 来说读取到的 size 一定是不准确的。而给 size()方法加了同步之后，意味着线程 B 调用 size()方法只有在线程 A调用 put 方法完毕之后才可以调用，这样就保证了线程安全性CPU 执行代码，执行的不是 Java 代码，这点很关键。
+
 #### 为什么wait/notify/notifyAll这些方法不在thread类里面？
+
+- [wait、notify、notifyAll方法只能在同步代码块中使用，在非同步代码块中会导致异常，因为只有在同步代码块中才会涉及到锁的概念，在非并发环境下尝试操作锁会导致失败。可以使用wait、notify来控制当前占用资源的线程进入阻塞队列与唤醒进入就绪队列，也就是说，这两个方法实际上实现的时线程之间的通信机制，用来通知线程的阻塞与唤醒。](#toc_0)
+- [线程为了进入临界区（也就是同步块内），需要获得锁并等待锁可用，它们并不知道也不需要知道哪些线程持有锁，它们只需要知道当前资源是否被占用，是否可以获得锁，所以锁的持有状态应该由同步监视器来获取，而不是线程本身](#toc_0)。
 
 #### Runnable接口和Callable接口的区别
 
+- [最大的区别，runnable没有返回值，Callable接口支持返回执行结果，此时需要调用FutureTask.get()方法实现，此方法会阻塞主线程直到获取‘将来’结果；当不调用此方法时，主线程不会阻塞！](#toc_0)
+- [callable接口实现类中的run方法允许异常向上抛出，可以在内部处理，try catch，但是runnable接口实现类中run方法的异常必须在内部处理，不能抛出](#toc_0)。
+
 #### CyclicBarrier和CountDownLatch的区别
 
-#### Java中如何获取到线程dump文件
+CountDownLatch													CyclicBarrier
+减计数方式														加计数方式
+计算为0时释放所有等待的线程											计数达到指定值时释放所有等待线程
+计数为0时，无法重置												计数达到指定值时，计数置为0重新开始
+调用countDown()方法计数减一，调用await()方法只进行阻塞，对计数没任何影响	调用await()方法计数加1，若加1后的值不等于构造方法的值，则线程阻塞
+不可重复利用														可重复利用
