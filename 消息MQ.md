@@ -1,29 +1,30 @@
 ### 消息MQ
 
 - [消息MQ](#toc_0)
-
 - - [什么是消息中间件](#toc_1)
-
 - - - [谈谈消息中间件 rocketmq,kafka,activemq,rabbitmq从架构设计，再到实现，以及应用场景区别？](#toc_2)
-
 - - [什么是JMS](#toc_3)
-
 - - - [JMS定义五种不同的消息格式，其中（1）、（2）用的比较多](#toc_4)
     - [JMS的消息传递类型](#toc_5)
-
 - - [kafka](#toc_6)
-
 - - - [Kafka 消息是采用 Pull 模式，还是 Push 模式？](#toc_7)
     - [Kafka consumer 是否可以消费指定分区消息？](#toc_8)
     - [Kafka 与传统消息系统之间区别](#toc_9)
     - [Kafka将以下消息保存至Zookeeper中](#toc_10)
     - [副本同步队列ISR(in-sync replicas)](#toc_11)
 
-------
+---
 
 #### 什么是消息中间件
 
+**消息中间件** ：是利用高效可靠的消息传递机制进行异步的数据传输，并基于[数据通信](https://so.csdn.net/so/search?q=%E6%95%B0%E6%8D%AE%E9%80%9A%E4%BF%A1&spm=1001.2101.3001.7020)进行分布式系统的集成。通过提供消息队列模型和消息传递机制，可以在分布式环境下扩展进程间的通信。
+
 #### 谈谈消息中间件 rocketmq,kafka,activemq,rabbitmq从架构设计，再到实现，以及应用场景区别？
+
+1、ActiveMQ：更新比较慢、java开发的、万级吞吐量
+2、RabbitMQ:相对ActiveMQ来说更新较快、erlang语言开发（erlang语言天生具有高并发的特效，但是熟悉erlang的人相对较少，好在社区比较活跃）
+3、RocketMQ：支持分布式架构、Java语言开发可以定制化开发
+4、Kafka：支持分布式架构、吞吐量十万级
 
 #### 什么是JMS
 
@@ -127,7 +128,7 @@ kafka是一个分布式的基于发布/订阅模式的消息队列
 
 　　（4）partition：为了实现扩展性，一个非常大的topic可以有分成多个partition，它们可以分布在多个broker上。
 
-##### 为什么要使用 kafka？ 
+##### 为什么要使用 kafka？
 
 1. 缓冲和削峰：上游数据时有突发流量，下游可能扛不住，或者下游没有足够多的机器来保证冗余，kafka在中间可以起到一个缓冲的作用，把消息暂存在kafka中，下游服务就可以按照自己的节奏进行慢慢处理。
 2. 解耦和扩展性：项目开始的时候，并不能确定具体需求。消息队列可以作为一个接口层，解耦重要的业务流程。只需要遵守约定，针对数据编程即可获取扩展能力。
@@ -188,7 +189,7 @@ request.required.acks 有三个值 0 1 -1(all)
 既然 Broker 端消息存储是通过异步批量刷盘的，那么这里就可能会丢数据的
 
 - 由于 Kafka 中并没有提供「**同步刷盘**」的方式，所以说从单个 Broker 来看还是很有可能丢失数据的。
-- kafka 通过「**多 Partition （分区）多 Replica（副本）机制」**已经可以最大限度的保证数据不丢失，如果数据已经写入 PageCache 中但是还没来得及刷写到磁盘，此时如果所在 Broker 突然宕机挂掉或者停电，极端情况还是会造成数据丢失。
+- kafka 通过「多 Partition （分区）多 Replica（副本）机制」已经可以最大限度的保证数据不丢失，如果数据已经写入 PageCache 中但是还没来得及刷写到磁盘，此时如果所在 Broker 突然宕机挂掉或者停电，极端情况还是会造成数据丢失。
 
 3）Kafka Broker 将消息拉取并进行消费。
 
@@ -203,7 +204,7 @@ request.required.acks 有三个值 0 1 -1(all)
 ConsumerRecords<> records = consumer.poll();
 for (ConsumerRecord<> record : records){
     。。。
-    tyr{
+    try{
         consumer.commitSync()
     }
     。。。
@@ -215,7 +216,6 @@ for (ConsumerRecord<> record : records){
 ##### Kafka怎么处理消息堆积
 
 + 增加分区同时增加消费实例
-
 + 单个消费者线程使用异步消费(线程池)
 
 ##### kafka的isr机制
@@ -229,7 +229,7 @@ for (ConsumerRecord<> record : records){
 3、OSR（Out-Sync Relipcas）不能和 leader 保持同步的 follower 集合
 
 4、公式：AR = ISR + OSR
-**Kafka采用的就是一种完全同步的方案，而ISR是基于完全同步的一种优化机制。Kafka只保证对ISR集合中的所有副本保证完全同步。**处于ISR内部的follower都是可以和leader进行同步的，一旦出现故障或延迟，就会被踢出ISR。
+Kafka采用的就是一种完全同步的方案，而ISR是基于完全同步的一种优化机制。Kafka只保证对ISR集合中的所有副本保证完全同步。处于ISR内部的follower都是可以和leader进行同步的，一旦出现故障或延迟，就会被踢出ISR。
 
 ##### Kafka如何保证顺序消费
 
