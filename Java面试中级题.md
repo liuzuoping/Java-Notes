@@ -2,13 +2,68 @@
 
 ##### 哪些集合类是线程安全的
 
-1. Concurrenthashmap的实现，1.7和1.8的实现
+线性安全的
+Vector：只要是关键性的操作，方法前面都加了synchronized关键字，来保证线程的安全性
+Hashtable：使用了synchronized关键字，所以相较于Hashmap是线程安全的。
+ConcurrentHashMap:使用锁分段技术确保线性安全，是一种高效但是线程安全的集合。
+Stack：栈，也是线程安全的，继承于Vector。
+
+线性不安全的 Hashmap; Arraylist; LinkedList; HashSet; TreeSet; TreeMap
+
+Hashmap：HashMap在put操作的时候，如果插入的元素超过了容量（由负载因子决定）的范围就会触发扩容操作，就是resize，这个会重新将原数组的内容重新hash到新的扩容数组中，在多线程的环境下，存在同时其他的元素也在进行put操作，如果hash值相同，可能出现同时在同一数组下用链表表示，造成闭环，导致在get时会出现死循环，所以HashMap是线程不安全的。
+
+Arraylist： List 对象在做 add 时，执行 Arrays.copyOf 的时候，返回一个新的数组对象。当有线程 A、B… 同时进入 grow方法，多个线程都会执行 Arrays.copyOf 方法，返回多个不同的 elementData 对象，假如，A先返回，B 后返回，那么 List.elementData ==A. elementData,如果同时B也返回，那么 List.elementData ==B. elementData,所以线程B就把线程A的数据给覆盖了，导致线程A的数据被丢失。
+
+LinkedList：与Arraylist线程安全问题相似，线程安全问题是由多个线程同时写或同时读写同一个资源造成的。
+
+HashSet：底层数据存储结构采用了Hashmap，所以Hashmap会产生的线程安全问题HashSet也会产生。
+
+##### Concurrenthashmap的实现，1.7和1.8的实现
+
+在JDK1.7版本中，ConcurrentHashMap的数据结构是由一个Segment数组和多个HashEntry组成，HashEntry 用来封装映射表的键 / 值对；Segment 用来充当锁的角色，每个 Segment 对象守护整个散列映射表的若干个桶。每个桶是由若干个 HashEntry对象链接起来的链表。一个 ConcurrentHashMap 实例中包含由若干个 Segment 对象组成的数组。
+
+(1)  从1.7到1.8版本，由于HashEntry从链表 变成了红黑树所以 concurrentHashMap的时间复杂度从O(n)到O(log(n))
+
+(2)  HashEntry最小的容量为2
+
+(3)Segment的初始化容量是16;
+
+(4)HashEntry在1.8中称为Node,链表转红黑树的值是8 ,当Node链表的节点数大于8时Node会自动转化为TreeNode,会转换成红黑树的结构
+
+JDK1.8版本的ConcurrentHashMap的数据结构已经接近HashMap，相对而言，ConcurrentHashMap只是增加了同步的操作来控制并发，从JDK1.7版本的ReentrantLock+Segment+HashEntry，到JDK1.8版本中synchronized+CAS+HashEntry+红黑树,相对而言，总结如下思考
+
+JDK1.8的实现降低锁的粒度，JDK1.7版本锁的粒度是基于Segment的，包含多个HashEntry，而JDK1.8锁的粒度就是HashEntry（首节点）
+JDK1.8版本的数据结构变得更加简单，使得操作也更加清晰流畅，因为已经使用synchronized来进行同步，所以不需要分段锁的概念，也就不需要Segment这种数据结构了，由于粒度的降低，实现的复杂度也增加了
+JDK1.8使用红黑树来优化链表，基于长度很长的链表的遍历是一个很漫长的过程，而红黑树的遍历效率是很快的，代替一定阈值的链表，这样形成一个最佳拍档
+JDK1.8为什么使用内置锁synchronized来代替重入锁ReentrantLock，我觉得有以下几点
+因为粒度降低了，在相对而言的低粒度加锁方式，synchronized并不比ReentrantLock差，在粗粒度加锁中ReentrantLock可能通过Condition来控制各个低粒度的边界，更加的灵活，而在低粒度中，Condition的优势就没有了
+JVM的开发团队从来都没有放弃synchronized，而且基于JVM的synchronized优化空间更大，使用内嵌的关键字比使用API更加自然
+在大量的数据操作下，对于JVM的内存压力，基于API的ReentrantLock会开销更多的内存，虽然不是瓶颈，但是也是一个选择依据
+
 
 ##### Arrays.sort的实现
 
+元素少于47用插入排序,**至于大过INSERTION_SORT_THRESHOLD（47）的，用一种快速排序的方法：所以大于或等于47或少于286会进入快排，而在大于或等于286后，会有个小动作：这里第一个作用是先梳理一下数据方便后续的归并排序，第二个作用就是即便大于286，但在降序组太多的时候（被判断为没有结构的数据，The array is not highly structured,use Quicksort instead of merge sort.），要转回快速排序。**
+**所以**Arrays.sort并不是单一的排序，而是插入排序，快速排序，归并排序三种排序的组合
+
+
 ##### 什么时候使用CopyOnArrayList
 
+读操作可以尽可能的快，而写即使慢一些也没关系：在很多应用场景中，读操作可能会远远多于写操作。比如，有些系统级别的信息，往往只需要加载或者修改很少的次数，但是会被系统内所有模块频繁的访问。对于这种场景，我们最希望看到的就是读操作可以尽可能的快，而写即使慢一些也没关系。
+
+读多写少：**黑名单是最典型的场景，假如我们有一个搜索网站，用户在这个网站的搜索框中，输入关键字搜索内容，但是某些关键字不允许被搜索。这些不能被搜索的关键字会被放在一个黑名单中，黑名单并不需要实时更新，可能每天晚上更新一次就可以了。当用户搜索时，会检查当前关键字在不在黑名单中，如果在，则提示不能搜索。这种读多写少的场景也很适合使用 CopyOnWrite 集合。**
+
+从 CopyOnWriteArrayList 的名字就能看出它是满足 CopyOnWrite 的 ArrayList，CopyOnWrite 的意思是说，当容器需要被修改的时候，不直接修改当前容器，而是先将当前容器进行 Copy，复制出一个新的容器，然后修改新的容器，完成修改之后，再将原容器的引用指向新的容器。这样就完成了整个修改过程。
+
+CopyOnWriteArrayList 的思想比读写锁的思想又更进一步。为了将读取的性能发挥到极致，CopyOnWriteArrayList  **读取是完全不用加锁的** **，更厉害的是，** **写入也不会阻塞读取操作** **，也就是说你可以在写入的同时进行读取，只有写入和写入之间需要进行同步，也就是不允许多个写入同时发生，但是在写入发生时允许读取同时发生。这样一来，读操作的性能就会大幅度提升。**
+
 ##### CAS和AQS的实现原理
+
+CAS(Compare And Swap)，即比较并交换。compareAndSwapInt是借助C来调用CPU底层指令实现的。是解决多线程并行情况下使用锁造成性能损耗的一种机制，CAS操作包含三个操作数——内存位置（V）、预期原值（A）和新值(B)。如果内存位置的值与预期原值相匹配，那么处理器会自动将该位置值更新为新值。否则，处理器不做任何操作。无论哪种情况，它都会在CAS指令之前返回该位置的值。CAS有效地说明了“我认为位置V应该包含值A；如果包含该值，则将B放到这个位置；否则，不要更改该位置，只告诉我这个位置现在的值即可。程序会根据当前处理器的类型来决定是否为cmpxchg指令添加lock前缀。如果程序是在多处理器上运行，就为cmpxchg指令加上lock前缀（lock cmpxchg）。反之，如果程序是在单处理器上运行，就省略lock前缀（单处理器自身会维护单处理器内的顺序一致性，不需要lock前缀提供的内存屏障效果）。
+
+AQS全名：AbstractQueuedSynchronizer，是并发容器J.U.C（java.util.concurrent）下locks包内的一个类。它实现了一个 **FIFO** (FirstIn、FisrtOut先进先出)的[队列](https://so.csdn.net/so/search?q=%E9%98%9F%E5%88%97&spm=1001.2101.3001.7020)。底层实现的数据结构是一个 **双向链表** 。
+
+AQS核心思想是，如果被请求的共享资源空闲，则将当前请求资源的线程设置为有效的工作线程，并且将共享资源设置为锁定状态。如果被请求的共享资源被占用，那么就需要一套线程阻塞等待以及被唤醒时锁分配的机制，这个机制AQS是用CLH队列锁实现的，即将暂时获取不到锁的线程加入到队列中。AQS使用一个int成员变量来表示同步状态，通过内置的FIFO队列来完成获取资源线程的排队工作。AQS使用CAS对该同步状态进行原子操作实现对其值的修改。状态信息通过protected类型的getState，setState，compareAndSetState进行操作
 
 ##### reentrantlock的实现和Synchronied的区别
 
@@ -29,7 +84,7 @@
 ##### Redis和memcached
 
 1. 什么时候选择redis，什么时候选择memcached
-2. 内存模型和存储策略是什么样的 
+2. 内存模型和存储策略是什么样的
 
 ##### java中bio nio aio的区别和联系
 
@@ -122,35 +177,27 @@ public static void main(String[] args) {
 1. 简单工厂
 
    Spring中的BeanFactory就是简单工厂模式的体现，根据传入一个唯一的标识来获得Bean对象，但是否是在传入参数后创建还是传入参数前创建这个要根据具体情况来定。
-
 2. 工厂方法
 
    实现了FactoryBean接口的bean是一类叫做factory的bean。其特点是，spring会在使用getBean()调用获得该bean时，会自动调用该bean的getObject()方法，所以返回的不是factory这个bean，而是这个bean的getOjbect()方法的返回值。
-
 3. 单例模式
 
    Spring依赖注入Bean实例默认是单例的。Spring的依赖注入（包括lazy-init方式）都是发生在AbstractBeanFactory的getBean里。getBean的doGetBean方法调用getSingleton进行bean的创建。
-
 4. 适配器模式
 
    SpringMVC中的适配器HandlerAdatper，它会根据Handler规则执行不同的Handler。即DispatcherServlet根据HandlerMapping返回的handler，向HandlerAdatper发起请求处理Handler。HandlerAdapter根据规则找到对应的Handler并让其执行，执行完毕后Handler会向HandlerAdapter返回一个ModelAndView，最后由HandlerAdapter向DispatchServelet返回一个ModelAndView。
-
 5. 装饰器模式
 
    Spring中用到的装饰器模式在类名上有两种表现：一种是类名中含有Wrapper，另一种是类名中含有Decorator。
-
 6. 代理模式
 
    AOP底层就是动态代理模式的实现。即：切面在应用运行的时刻被织入。一般情况下，在织入切面时，AOP容器会为目标对象创建动态的创建一个代理对象。SpringAOP就是以这种方式织入切面的。
-
 7. 观察者模式
 
    Spring的事件驱动模型使用的是观察者模式，Spring中Observer模式常用的地方是listener的实现。
-
 8. 策略模式
 
    Spring框架的资源访问Resource接口。该接口提供了更强的资源访问能力，Spring 框架本身大量使用了 Resource 接口来访问底层资源。Resource 接口是具体资源访问策略的抽象，也是所有资源访问类所实现的接口。
-
 9. 模板方法模式
 
    Spring模板方法模式的实质，是模板方法模式和回调模式的结合，是Template Method不需要继承的另一种实现方式。Spring几乎所有的外接扩展都采用这种模式。
@@ -267,7 +314,7 @@ AOP的好处：
 - **模板方法模式** : Spring 中 `jdbcTemplate`、`hibernateTemplate` 等以 Template 结尾的对数据库操作的类，它们就使用到了模板模式。
 - **包装器设计模式** : 我们的项目需要连接多个数据库，而且不同的客户在每次访问中根据需要会去访问不同的数据库。这种模式让我们可以根据客户的需求能够动态切换不同的数据源。
 - **观察者模式:** Spring 事件驱动模型就是观察者模式很经典的一个应用。
-- **适配器模式** :Spring AOP 的增强或通知(Advice)使用到了适配器模式、spring MVC 中也是用到了适配器模式适配`Controller`。
+- **适配器模式** :Spring AOP 的增强或通知(Advice)使用到了适配器模式、spring MVC 中也是用到了适配器模式适配 `Controller`。
 
 ##### Spring 事务中有哪几种事务传播行为?
 
@@ -320,13 +367,11 @@ Spring boot 监视器可帮助您访 问生产环境中正在运行的应用程�
 
 ##### SpringBoot的自动配置原理
 
-我们可以发现，在使用`main()`启动SpringBoot的时候，只有一个注解`@SpringBootApplication`，我们可以点击进去`@SpringBootApplication`注解中看看，可以发现有**三个注解**是比较重要的：
+我们可以发现，在使用 `main()`启动SpringBoot的时候，只有一个注解 `@SpringBootApplication`，我们可以点击进去 `@SpringBootApplication`注解中看看，可以发现有**三个注解**是比较重要的：
 
 - `@SpringBootConfiguration`：我们点进去以后可以发现底层是**Configuration**注解，说白了就是支持**JavaConfig**的方式来进行配置(**使用Configuration配置类等同于XML文件**)。
-
 - `@EnableAutoConfiguration`：开启**自动配置**功能
-
-- `@ComponentScan`：这个注解，学过Spring的同学应该对它不会陌生，就是**扫描**注解，默认是扫描**当前类下**的package。将`@Controller/@Service/@Component/@Repository`等注解加载到IOC容器中。
+- `@ComponentScan`：这个注解，学过Spring的同学应该对它不会陌生，就是**扫描**注解，默认是扫描**当前类下**的package。将 `@Controller/@Service/@Component/@Repository`等注解加载到IOC容器中。
 
   `@SpringBootApplication`等同于下面三个注解：
 
@@ -334,11 +379,11 @@ Spring boot 监视器可帮助您访 问生产环境中正在运行的应用程�
   - `@EnableAutoConfiguration`
   - `@ComponentScan`
 
-  其中`@EnableAutoConfiguration`是关键(启用自动配置)，内部实际上就去加载`META-INF/spring.factories`文件的信息，然后筛选出以`EnableAutoConfiguration`为key的数据，加载到IOC容器中，实现自动配置功能！
+  其中 `@EnableAutoConfiguration`是关键(启用自动配置)，内部实际上就去加载 `META-INF/spring.factories`文件的信息，然后筛选出以 `EnableAutoConfiguration`为key的数据，加载到IOC容器中，实现自动配置功能！
 
 ##### springboot的全局异常处理
 
-SpringBoot的项目已经对有一定的异常处理了，但是对于我们开发者而言可能就不太合适了，因此我们需要对这些异常进行统一的捕获并处理。SpringBoot中有一个`ControllerAdvice`的注解，使用该注解表示开启了全局异常的捕获，我们只需在自定义一个方法使用`ExceptionHandler`注解然后定义捕获异常的类型即可对这些捕获的异常进行统一的处理。
+SpringBoot的项目已经对有一定的异常处理了，但是对于我们开发者而言可能就不太合适了，因此我们需要对这些异常进行统一的捕获并处理。SpringBoot中有一个 `ControllerAdvice`的注解，使用该注解表示开启了全局异常的捕获，我们只需在自定义一个方法使用 `ExceptionHandler`注解然后定义捕获异常的类型即可对这些捕获的异常进行统一的处理。
 
 ```java
 @ControllerAdvice
@@ -356,9 +401,9 @@ public class MyExceptionHandler {
 
 在 Spring Boot 应用中，系统中共存在以下 3 种异常情况：
 
-- **`Controller`抛出的异常**：可以采用`@ControllerAdvice`进行全局捕获
+- **`Controller`抛出的异常**：可以采用 `@ControllerAdvice`进行全局捕获
 - **其他异常**：会被全局异常处理器（比如：`BasicErrorController`）进行捕获
-- **全局异常处理器抛出的异常**：对于非`/error`页面的异常，会被内置容器转发到`/error`进行捕获处理，而对于`/error`页面的异常，会先由`@ControllerAdvice`进行捕获，捕获不成功则交由 Spring Boot 内置的 Web 应用容器（比如：Tomcat）进行捕获。
+- **全局异常处理器抛出的异常**：对于非 `/error`页面的异常，会被内置容器转发到 `/error`进行捕获处理，而对于 `/error`页面的异常，会先由 `@ControllerAdvice`进行捕获，捕获不成功则交由 Spring Boot 内置的 Web 应用容器（比如：Tomcat）进行捕获。
 
 ##### java多线程同步的方法
 
@@ -368,21 +413,21 @@ public class MyExceptionHandler {
 
 （3）使用特殊域变量(volatile)实现线程同步
 
-  a.volatile关键字为域变量的访问提供了一种免锁机制 
-  b.使用volatile修饰域相当于告诉虚拟机该域可能会被其他线程更新 
-  c.因此每次使用该域就要重新计算，而不是使用寄存器中的值 
+  a.volatile关键字为域变量的访问提供了一种免锁机制
+  b.使用volatile修饰域相当于告诉虚拟机该域可能会被其他线程更新
+  c.因此每次使用该域就要重新计算，而不是使用寄存器中的值
   d.volatile不会提供任何原子操作，它也不能用来修饰final类型的变量
 
 （4）使用重入锁实现线程同步
 
   在JavaSE5.0中新增了一个java.util.concurrent包来支持同步。ReentrantLock类是可重入、互斥、实现了Lock接口的锁， 它与使用synchronized方法和快具有相同的基本行为和语义，并且扩展了其能力。
    ReenreantLock类的常用方法有：
-     ReentrantLock() : 创建一个ReentrantLock实例 
-     lock() : 获得锁 
-     unlock() : 释放锁 
-  注：ReentrantLock()还有一个可以创建公平锁的构造方法，但由于能大幅度降低程序运行效率，不推荐使用 
+     ReentrantLock() : 创建一个ReentrantLock实例
+     lock() : 获得锁
+     unlock() : 释放锁
+  注：ReentrantLock()还有一个可以创建公平锁的构造方法，但由于能大幅度降低程序运行效率，不推荐使用
 
-如果synchronized关键字能满足用户的需求，就用synchronized，因为它能简化代码 。如果需要更高级的功能，就用ReentrantLock类，此时要注意及时释放锁，否则会出现死锁，通常在finally代码释放锁 
+如果synchronized关键字能满足用户的需求，就用synchronized，因为它能简化代码 。如果需要更高级的功能，就用ReentrantLock类，此时要注意及时释放锁，否则会出现死锁，通常在finally代码释放锁
 
 （5）使用局部变量实现线程同步
 
@@ -450,7 +495,7 @@ Thread引用会引用一个ThreadLocalMap对象，这个map中的key是ThreadLoc
 但其实，由于 Thread -> ThreadLocalMap -> Entry -> value 存在这样一条引用链 只要 `Thread` 不被退出，`ThreadLocalMap` 的生命周期将是一样长的，如果不进行手动删除，必然会出现内存泄露。更何况我们大多数是以线程池的方式去操作线程。
 
 总结:
- threadLocal` 内存泄漏的根源是：由于 `ThreadLocalMap` 的生命周期跟 `Thread`一样长，如果没有手动删除对应 `key 就会导致内存泄漏，而不是因为弱引用。
+ threadLocal `内存泄漏的根源是：由于`ThreadLocalMap `的生命周期跟`Thread `一样长，如果没有手动删除对应 `key 就会导致内存泄漏，而不是因为弱引用。
 
 **建议：在使用ThreadLocal的时候要养成及时 `remove()` 的习惯**
 
