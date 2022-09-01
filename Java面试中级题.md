@@ -40,12 +40,10 @@ JDK1.8为什么使用内置锁synchronized来代替重入锁ReentrantLock，我�
 JVM的开发团队从来都没有放弃synchronized，而且基于JVM的synchronized优化空间更大，使用内嵌的关键字比使用API更加自然
 在大量的数据操作下，对于JVM的内存压力，基于API的ReentrantLock会开销更多的内存，虽然不是瓶颈，但是也是一个选择依据
 
-
 ##### Arrays.sort的实现
 
 元素少于47用插入排序,**至于大过INSERTION_SORT_THRESHOLD（47）的，用一种快速排序的方法：所以大于或等于47或少于286会进入快排，而在大于或等于286后，会有个小动作：这里第一个作用是先梳理一下数据方便后续的归并排序，第二个作用就是即便大于286，但在降序组太多的时候（被判断为没有结构的数据，The array is not highly structured,use Quicksort instead of merge sort.），要转回快速排序。**
 **所以**Arrays.sort并不是单一的排序，而是插入排序，快速排序，归并排序三种排序的组合
-
 
 ##### 什么时候使用CopyOnArrayList
 
@@ -67,11 +65,61 @@ AQS核心思想是，如果被请求的共享资源空闲，则将当前请求�
 
 ##### reentrantlock的实现和Synchronied的区别
 
+这两种方式最大区别就是对于Synchronized来说，它是java语言的关键字，是原生语法层面的互斥，需要jvm实现。而ReentrantLock它是JDK 1.5之后提供的API层面的互斥锁，需要lock()和unlock()方法配合try/finally语句块来完成
+
+便利性：很明显Synchronized的使用比较方便简洁，并且由编译器去保证锁的加锁和释放，而ReenTrantLock需要手工声明来加锁和释放锁，为了避免忘记手工释放锁造成死锁，所以最好在finally中声明释放锁。
+
+锁的细粒度和灵活度：很明显ReenTrantLock优于Synchronized
+
+Synchronized进过编译，会在同步块的前后分别形成monitorenter和monitorexit这个两个字节码指令。在执行monitorenter指令时，首先要尝试获取对象锁。如果这个对象没被锁定，或者当前线程已经拥有了那个对象锁，把锁的计算器加1，相应的，在执行monitorexit指令时会将锁计算器就减1，当计算器为0时，锁就被释放了。如果获取对象锁失败，那当前线程就要阻塞，直到对象锁被另一个线程释放为止。
+ReenTrantLock的实现是一种自旋锁，通过循环调用CAS操作来实现加锁。它的性能比较好也是因为避免了使线程进入内核态的阻塞状态。想尽办法避免线程进入内核的阻塞状态是我们去分析和理解锁设计的关键钥匙。
+
 ##### 双亲委派模型
+
+JVM中有3个默认的类加载器：
+
+1、启动类加载器 （Bootstrap Class Loader）
+
+2、扩展类加载器（Extension Class Loader）
+
+3、应用程序类加载器（Application Class Loader）
+
+双亲委派模型，要求除了顶层的启动类加载器外，其余的类加载器都应当有自己的父类加载器。
+
+Java平台通过委派模型去加载类。每个类加载器都有一个父加载器。
+
+1、当需要加载类时，会优先委派当前所在的类的加载器的父加载器去加载这个类。
+
+2、如果父加载器无法加载到这个类时，再尝试在当前所在的类的加载器中加载这个类。
 
 ##### 反射机制：反射动态擦除泛型、反射动态调用方法等
 
+反射机制是在运行状态中，对于任意一个类，都能够知道这个类的所有属性和方法；对于任意一个对象，都能够调用它的任意一个方法和属性；这种动态获取的信息以及动态调用对象的方法的功能就是反射机制；也就是说通过反射机制，我们可以获取想要获取到的东西，对前面所学到的范围限定词的限制就可以打破约束
+程序编译后产生的.class文件中是没有泛型约束的，这种现象我们称为泛型的擦除。那么，我们可以通过[反射](https://so.csdn.net/so/search?q=%E5%8F%8D%E5%B0%84&spm=1001.2101.3001.7020)技术，来完成向有泛型约束的集合中，添加任意类型的元素
+
+```java
+public class ReflectTest {
+	public static void main(String[] args)throws Exception {
+		ArrayList<String> array  = new ArrayList<String>();
+		array.add("a");
+		//反射方式,获取出集合ArrayList类的class文件对象
+		Class c = array.getClass();
+		//获取ArrayList.class文件中的方法add
+		Method method = c.getMethod("add",Object.class);
+		//使用invoke运行ArrayList方法add
+		method.invoke(array, 150);
+		method.invoke(array, 1500);
+		method.invoke(array, 15000);
+		System.out.println(array);
+	}
+```
+
+
 ##### 动态绑定：父类引用指向子类对象
+
+我定义了一个Animal类型的引用，指向新建的Cat类型的对象。由于Cat是继承自它的父类Animal，所以Animal类型的引用是可以指向Cat类型的对象的。这就是“向上转型”.
+
+那什么是动态绑定呢？当父类中的一个方法只有在父类中定义而在子类中没有重写的情况下，才可以被父类类型的引用调用； 对于父类中定义的方法，如果子类中重写了该方法，那么父类类型的引用将会调用子类中的这个方法，这就是动态连接。
 
 ##### JVM内存管理机制：有哪些区域，每个区域做了什么
 
