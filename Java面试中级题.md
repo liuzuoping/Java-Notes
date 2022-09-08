@@ -390,7 +390,7 @@ public static void main(String[] args) {
 
 1. **应用中可以包含多个IOC容器。**
 2. **DispatcherServlet的创建的子容器主要包含Controller、view resolvers等和web相关的一些bean。**
-3. **父容器root WebApplicationContex主要包含包含一些基础的bean，比如一些需要在多个servlet共享的dao、service等bean。**
+3. **父容器root WebApplicationContext主要包含包含一些基础的bean，比如一些需要在多个servlet共享的dao、service等bean。**
 4. **如果在子容器中找不到bean的时候可以去父容器查找bean。**
 
 ##### Cglib和jdk动态代理的区别？
@@ -409,7 +409,7 @@ public static void main(String[] args) {
 
 ##### 谈谈自己对于 Spring IoC 的了解
 
-**所谓IoC，对于spring框架来说，就是由spring来负责控制对象的生命周期和对象间的关系。**Spring所倡导的开发方式**就是如此，**所有的类都会在spring容器中登记，告诉spring你是个什么东西，你需要什么东西，然后spring会在系统运行到适当的时候，把你要的东西主动给你，同时也把你交给其他需要你的东西。所有的类的创建、销毁都由 spring来控制，也就是说控制对象生存周期的不再是引用它的对象，而是spring。对于某个具体的对象而言，以前是它控制其他对象，现在是所有对象都被spring控制，所以这叫控制反转。
+**所谓IoC，对于spring框架来说，就是由spring来负责控制对象的生命周期和对象间的关系**。**Spring所倡导的开发方式**就是如此，所有的类都会在spring容器中登记，告诉spring你是个什么东西，你需要什么东西，然后spring会在系统运行到适当的时候，把你要的东西主动给你，同时也把你交给其他需要你的东西。所有的类的创建、销毁都由 spring来控制，也就是说控制对象生存周期的不再是引用它的对象，而是spring。对于某个具体的对象而言，以前是它控制其他对象，现在是所有对象都被spring控制，所以这叫控制反转。
 
 ##### 谈谈自己对于 AOP 的了解
 
